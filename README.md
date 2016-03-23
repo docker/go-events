@@ -3,13 +3,14 @@
 [![GoDoc](https://godoc.org/github.com/docker/go-events?status.svg)](https://godoc.org/github.com/docker/go-events)
 [![Circle CI](https://circleci.com/gh/docker/go-events.svg?style=shield)](https://circleci.com/gh/docker/go-events)
 
-The Docker `events` package implements a composable event distribition package.
-It provides helpers for commonly used patterns for use in Go code.
+The Docker `events` package implements a composable event distribution package
+for Go.
 
 Originally created to implement the [notifications in Docker Registry
 2](https://github.com/docker/distribution/blob/master/docs/notifications.md),
 we've found the pattern to be useful in other applications. This package is
-most of the same code with slightly updated interfaces.
+most of the same code with slightly updated interfaces. Much of the internals
+have been made available.
 
 ## Usage
 
