@@ -35,7 +35,6 @@ func NewRetryingSink(sink Sink, strategy RetryStrategy) *RetryingSink {
 // or the sink is closed.
 func (rs *RetryingSink) Write(event Event) error {
 	logger := logrus.WithField("event", event)
-	var timer *time.Timer
 
 retry:
 	select {
@@ -45,15 +44,8 @@ retry:
 	}
 
 	if backoff := rs.strategy.Proceed(event); backoff > 0 {
-		if timer == nil {
-			timer = time.NewTimer(backoff)
-			defer timer.Stop()
-		} else {
-			timer.Reset(backoff)
-		}
-
 		select {
-		case <-timer.C:
+		case <-time.After(backoff):
 			goto retry
 		case <-rs.closed:
 			return ErrSinkClosed
