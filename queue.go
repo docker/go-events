@@ -55,11 +55,14 @@ func (eq *Queue) Close() error {
 		return ErrSinkClosed
 	}
 
+	err := eq.dst.Close()
+
 	// set closed flag
 	eq.closed = true
 	eq.cond.Signal() // signal flushes queue
 	eq.cond.Wait()   // wait for signal from last flush
-	return eq.dst.Close()
+
+	return err
 }
 
 // run is the main goroutine to flush events to the target sink.
