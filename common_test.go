@@ -63,6 +63,14 @@ func (ts *testSink) Close() error {
 	return nil
 }
 
+func (ts *testSink) Done() <-chan struct{} {
+	ch := make(chan struct{})
+	if ts.closed {
+		close(ch)
+	}
+	return ch
+}
+
 type delayedSink struct {
 	Sink
 	delay time.Duration

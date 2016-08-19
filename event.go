@@ -12,4 +12,7 @@ type Sink interface {
 
 	// Close the sink, possibly waiting for pending events to flush.
 	Close() error
+
+	// Done returns a channel that will always proceed once the sink is closed.
+	Done() <-chan struct{}
 }
