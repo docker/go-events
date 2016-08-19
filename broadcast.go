@@ -98,6 +98,12 @@ func (b *Broadcaster) Close() error {
 	return nil
 }
 
+// Done returns a channel that will always proceed once the broadcaster is
+// closed.
+func (b *Broadcaster) Done() <-chan struct{} {
+	return b.closed
+}
+
 // run is the main broadcast loop, started when the broadcaster is created.
 // Under normal conditions, it waits for events on the event channel. After
 // Close is called, this goroutine will exit.

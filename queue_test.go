@@ -17,7 +17,7 @@ func TestQueue(t *testing.T) {
 			Sink:  ts,
 			delay: time.Millisecond * 1,
 		})
-	time.Sleep(10 * time.Millisecond) // let's queue settle to wait conidition.
+	time.Sleep(10 * time.Millisecond) // lets queue settle to wait condition.
 
 	var wg sync.WaitGroup
 	for i := 1; i <= nevents; i++ {
@@ -30,6 +30,8 @@ func TestQueue(t *testing.T) {
 		}("event-" + fmt.Sprint(i))
 	}
 
+	ts.Close()
+
 	wg.Wait()
 	checkClose(t, eq)
 
@@ -39,8 +41,21 @@ func TestQueue(t *testing.T) {
 	if len(ts.events) != nevents {
 		t.Fatalf("events did not make it to the sink: %d != %d", len(ts.events), 1000)
 	}
+}
 
-	if !ts.closed {
-		t.Fatalf("sink should have been closed")
+func TestQueueLeakedDestination(t *testing.T) {
+	const nevents = 1000
+
+	ts := newTestSink(t, nevents)
+	eq := NewQueue(
+		// delayed sync simulates destination slower than channel comms
+		&delayedSink{
+			Sink:  ts,
+			delay: time.Millisecond * 1,
+		})
+
+	err := eq.Close()
+	if err != ErrDestinationNotClosed {
+		t.Fatalf("expected %v", ErrDestinationNotClosed)
 	}
 }

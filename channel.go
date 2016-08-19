@@ -23,7 +23,7 @@ func NewChannel(buffer int) *Channel {
 }
 
 // Done returns a channel that will always proceed once the sink is closed.
-func (ch *Channel) Done() chan struct{} {
+func (ch *Channel) Done() <-chan struct{} {
 	return ch.closed
 }
 

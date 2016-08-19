@@ -2,9 +2,16 @@ package events
 
 import (
 	"container/list"
+	"errors"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
+)
+
+var (
+	// ErrDestinationNotClosed is returned by Close if the destination is
+	// still open.
+	ErrDestinationNotClosed = errors.New("destination must be closed before closing queue")
 )
 
 // Queue accepts all messages into a queue for asynchronous consumption
@@ -15,7 +22,7 @@ type Queue struct {
 	events *list.List
 	cond   *sync.Cond
 	mu     sync.Mutex
-	closed bool
+	closed chan struct{}
 }
 
 // NewQueue returns a queue to the provided Sink dst.
@@ -36,8 +43,10 @@ func (eq *Queue) Write(event Event) error {
 	eq.mu.Lock()
 	defer eq.mu.Unlock()
 
-	if eq.closed {
+	select {
+	case <-eq.closed:
 		return ErrSinkClosed
+	default:
 	}
 
 	eq.events.PushBack(event)
@@ -46,20 +55,33 @@ func (eq *Queue) Write(event Event) error {
 	return nil
 }
 
-// Close shutsdown the event queue, flushing
+// Close shuts down the event queue, flushing
 func (eq *Queue) Close() error {
 	eq.mu.Lock()
 	defer eq.mu.Unlock()
 
-	if eq.closed {
+	select {
+	case <-eq.closed:
 		return nil
+	default:
+	}
+
+	select {
+	case <-eq.dst.Done():
+	default:
+		return ErrDestinationNotClosed
 	}
 
 	// set closed flag
-	eq.closed = true
+	close(eq.closed)
 	eq.cond.Signal() // signal flushes queue
 	eq.cond.Wait()   // wait for signal from last flush
-	return eq.dst.Close()
+	return nil
+}
+
+// Done returns a channel that will always proceed once the queue is closed.
+func (eq *Queue) Done() <-chan struct{} {
+	return eq.closed
 }
 
 // run is the main goroutine to flush events to the target sink.
@@ -95,9 +117,11 @@ func (eq *Queue) next() Event {
 	defer eq.mu.Unlock()
 
 	for eq.events.Len() < 1 {
-		if eq.closed {
+		select {
+		case <-eq.closed:
 			eq.cond.Broadcast()
 			return nil
+		default:
 		}
 
 		eq.cond.Wait()

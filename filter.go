@@ -1,5 +1,7 @@
 package events
 
+import "sync"
+
 // Matcher matches events.
 type Matcher interface {
 	Match(event Event) bool
@@ -18,19 +20,22 @@ func (fn MatcherFunc) Match(event Event) bool {
 type Filter struct {
 	dst     Sink
 	matcher Matcher
-	closed  bool
+	closed  chan struct{}
+	once    sync.Once
 }
 
 // NewFilter returns a new filter that will send to events to dst that return
 // true for Matcher.
 func NewFilter(dst Sink, matcher Matcher) Sink {
-	return &Filter{dst: dst, matcher: matcher}
+	return &Filter{dst: dst, matcher: matcher, closed: make(chan struct{})}
 }
 
 // Write an event to the filter.
 func (f *Filter) Write(event Event) error {
-	if f.closed {
+	select {
+	case <-f.closed:
 		return ErrSinkClosed
+	default:
 	}
 
 	if f.matcher.Match(event) {
@@ -43,10 +48,16 @@ func (f *Filter) Write(event Event) error {
 // Close the filter and allow no more events to pass through.
 func (f *Filter) Close() error {
 	// TODO(stevvooe): Not all sinks should have Close.
-	if f.closed {
-		return nil
-	}
+	var ret error
+	f.once.Do(func() {
+		close(f.closed)
+		ret = f.dst.Close()
+	})
 
-	f.closed = true
-	return f.dst.Close()
+	return ret
+}
+
+// Done returns a channel that will always proceed once the sink is closed.
+func (f *Filter) Done() <-chan struct{} {
+	return f.closed
 }

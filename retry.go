@@ -89,6 +89,11 @@ func (rs *RetryingSink) Close() error {
 	return nil
 }
 
+// Done returns a channel that will always proceed once the sink is closed.
+func (rs *RetryingSink) Done() <-chan struct{} {
+	return rs.closed
+}
+
 // RetryStrategy defines a strategy for retrying event sink writes.
 //
 // All methods should be goroutine safe.
