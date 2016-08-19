@@ -96,8 +96,8 @@ func checkClose(t *testing.T, sink Sink) {
 	}
 
 	// second close should not crash but should return an error.
-	if err := sink.Close(); err == nil {
-		t.Fatalf("no error on double close")
+	if err := sink.Close(); err != nil {
+		t.Fatalf("unexpected error on double close: %v", err)
 	}
 
 	// Write after closed should be an error
