@@ -46,7 +46,7 @@ loop:
 	}
 
 	sink.Close()
-	_, ok := <-sink.Done() // test will timeout if this hands
+	_, ok := <-sink.Done() // test will timeout if this hangs
 	if ok {
 		t.Fatalf("done should be a closed channel")
 	}
@@ -54,5 +54,4 @@ loop:
 	if received != nevents {
 		t.Fatalf("events did not make it through sink: %v != %v", received, nevents)
 	}
-
 }
