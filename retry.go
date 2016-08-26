@@ -93,10 +93,10 @@ func (rs *RetryingSink) Close() error {
 func (rs RetryingSink) String() string {
 	// Serialize a copy of the RetryingSink without the sync.Once, to avoid
 	// a data race.
-	rs2 := RetryingSink{
-		sink:     rs.sink,
-		strategy: rs.strategy,
-		closed:   rs.closed,
+	rs2 := map[string]interface{}{
+		"sink":     rs.sink,
+		"strategy": rs.strategy,
+		"closed":   rs.closed,
 	}
 	return fmt.Sprint(rs2)
 }
