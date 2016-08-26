@@ -161,17 +161,17 @@ func (b *Broadcaster) run() {
 }
 
 func (b Broadcaster) String() string {
-	// Serialize copy of this broadcaster without the sync.once, to avoid
+	// Serialize copy of this broadcaster without the sync.Once, to avoid
 	// a data race.
 
-	b2 := Broadcaster{
-		sinks:   b.sinks,
-		events:  b.events,
-		adds:    b.adds,
-		removes: b.removes,
+	b2 := map[string]interface{}{
+		"sinks":   b.sinks,
+		"events":  b.events,
+		"adds":    b.adds,
+		"removes": b.removes,
 
-		shutdown: b.shutdown,
-		closed:   b.closed,
+		"shutdown": b.shutdown,
+		"closed":   b.closed,
 	}
 
 	return fmt.Sprint(b2)
