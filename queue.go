@@ -31,7 +31,7 @@ func NewQueue(dst Sink) *Queue {
 }
 
 // Write accepts the events into the queue, only failing if the queue has
-// beend closed.
+// been closed.
 func (eq *Queue) Write(event Event) error {
 	eq.mu.Lock()
 	defer eq.mu.Unlock()
