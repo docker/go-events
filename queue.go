@@ -11,11 +11,18 @@ import (
 // by a sink. It is unbounded and thread safe but the sink must be reliable or
 // events will be dropped.
 type Queue struct {
-	dst    Sink
-	events *list.List
-	cond   *sync.Cond
-	mu     sync.Mutex
-	closed bool
+	dst       Sink
+	events    *list.List
+	listeners []QueueListener
+	cond      *sync.Cond
+	mu        sync.Mutex
+	closed    bool
+}
+
+// QueueListener is called when various events happen on the queue.
+type QueueListener interface {
+	Ingress(event Event)
+	Egress(event Event)
 }
 
 // NewQueue returns a queue to the provided Sink dst.
@@ -23,6 +30,21 @@ func NewQueue(dst Sink) *Queue {
 	eq := Queue{
 		dst:    dst,
 		events: list.New(),
+	}
+
+	eq.cond = sync.NewCond(&eq.mu)
+	go eq.run()
+	return &eq
+}
+
+// NewListenerQueue returns a queue to the provided Sink dst.  If the updater
+// is non-nil, it will be called to update pending metrics on ingress and
+// egress.
+func NewListenerQueue(dst Sink, listeners ...QueueListener) *Queue {
+	eq := Queue{
+		dst:       dst,
+		events:    list.New(),
+		listeners: listeners,
 	}
 
 	eq.cond = sync.NewCond(&eq.mu)
@@ -38,6 +60,10 @@ func (eq *Queue) Write(event Event) error {
 
 	if eq.closed {
 		return ErrSinkClosed
+	}
+
+	for _, listener := range eq.listeners {
+		listener.Ingress(event)
 	}
 
 	eq.events.PushBack(event)
@@ -83,6 +109,10 @@ func (eq *Queue) run() {
 				"event": event,
 				"sink":  eq.dst,
 			}).WithError(err).Debug("eventqueue: dropped event")
+		}
+
+		for _, listener := range eq.listeners {
+			listener.Egress(event)
 		}
 	}
 }
