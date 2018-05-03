@@ -13,16 +13,23 @@ import (
 type Queue struct {
 	dst    Sink
 	events *list.List
+	limit  int
 	cond   *sync.Cond
 	mu     sync.Mutex
 	closed bool
 }
 
-// NewQueue returns a queue to the provided Sink dst.
+// NewQueue returns an infinite queue to the provided Sink dst.
 func NewQueue(dst Sink) *Queue {
+	return NewSizedQueue(dst, 0)
+}
+
+// NewSizedQueue returns a sized queue to the provided Sink dst.
+func NewSizedQueue(dst Sink, limit int) *Queue {
 	eq := Queue{
 		dst:    dst,
 		events: list.New(),
+		limit:  limit,
 	}
 
 	eq.cond = sync.NewCond(&eq.mu)
@@ -38,6 +45,10 @@ func (eq *Queue) Write(event Event) error {
 
 	if eq.closed {
 		return ErrSinkClosed
+	}
+
+	if eq.limit > 0 && eq.events.Len() >= eq.limit {
+		return ErrQueueFull
 	}
 
 	eq.events.PushBack(event)
