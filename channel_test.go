@@ -9,7 +9,7 @@ import (
 func TestChannel(t *testing.T) {
 	const nevents = 100
 
-	sink := NewChannel(0)
+	sink := NewChannel(10)
 
 	go func() {
 		var wg sync.WaitGroup
@@ -25,13 +25,6 @@ func TestChannel(t *testing.T) {
 		}
 		wg.Wait()
 		sink.Close()
-
-		// now send another bunch of events and ensure we stay closed
-		for i := 1; i <= nevents; i++ {
-			if err := sink.Write(i); err != ErrSinkClosed {
-				t.Fatalf("unexpected error: %v != %v", err, ErrSinkClosed)
-			}
-		}
 	}()
 
 	var received int
@@ -54,4 +47,18 @@ loop:
 	if received != nevents {
 		t.Fatalf("events did not make it through sink: %v != %v", received, nevents)
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// now send another bunch of events and ensure we stay closed
+		for i := 1; i <= nevents; i++ {
+			if err := sink.Write(i); err != ErrSinkClosed {
+				t.Fatalf("unexpected error #%v: %v != %v",
+					i, err,	ErrSinkClosed)
+			}
+		}
+	}()
+	wg.Wait()
 }
