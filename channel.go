@@ -37,8 +37,12 @@ func (ch *Channel) Write(event Event) error {
 	case <-ch.closed:
 		return ErrSinkClosed
 	default:
-		ch.C <- event
-		return nil
+		select {
+			case <-ch.closed:
+				return ErrSinkClosed
+			case ch.C <- event:
+				return nil
+		}
 	}
 }
 
