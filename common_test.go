@@ -112,6 +112,6 @@ func benchmarkSink(b *testing.B, sink Sink) {
 	defer sink.Close()
 	var event = "myevent"
 	for i := 0; i < b.N; i++ {
-		sink.Write(event)
+		_ = sink.Write(event)
 	}
 }
