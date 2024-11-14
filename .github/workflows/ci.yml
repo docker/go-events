@@ -20,6 +20,9 @@ on:
       - 'main'
   pull_request:
 
+env:
+  DESTDIR: ./build
+
 jobs:
   test:
     runs-on: ubuntu-24.04
@@ -41,3 +44,33 @@ jobs:
           ln -s vendor.sum go.sum
       - name: Run tests
         run: go test -race
+  
+  govulncheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    permissions:
+      # required to write sarif report
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create go.mod
+        run: |
+          ln -s vendor.mod go.mod
+          ln -s vendor.sum go.sum
+      - name: Create artifact directory
+        run: mkdir -p ${{ env.DESTDIR }}
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-package: ./...
+          check-latest: true
+          repo-checkout: false
+          output-format: 'sarif'
+          output-file: ${{ env.DESTDIR }}/govulncheck.out
+      - name: Upload SARIF report
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'docker/go-events' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.DESTDIR }}/govulncheck.out 
