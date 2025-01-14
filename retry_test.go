@@ -32,9 +32,13 @@ func testRetryingSink(t *testing.T, strategy RetryStrategy) {
 
 	s := NewRetryingSink(flaky, strategy)
 
-	var wg sync.WaitGroup
+	var (
+		wg       sync.WaitGroup
+		asyncErr error
+		once     sync.Once
+	)
 	for i := 1; i <= nevents; i++ {
-		event := "myevent-" + fmt.Sprint(i)
+		wg.Add(1)
 
 		// Above 50, set the failure rate lower
 		if i > 50 {
@@ -43,16 +47,23 @@ func testRetryingSink(t *testing.T, strategy RetryStrategy) {
 			flaky.mu.Unlock()
 		}
 
-		wg.Add(1)
 		go func(event Event) {
 			defer wg.Done()
+
 			if err := s.Write(event); err != nil {
-				t.Fatalf("error writing event: %v", err)
+				once.Do(func() {
+					asyncErr = fmt.Errorf("error writing event(%v): %v", event, err)
+				})
 			}
-		}(event)
+		}(fmt.Sprintf("event-%d", i))
 	}
 
 	wg.Wait()
+
+	if asyncErr != nil {
+		t.Fatalf("expected nil error, got %v", asyncErr)
+	}
+
 	checkClose(t, s)
 
 	ts.mu.Lock()
