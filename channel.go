@@ -34,10 +34,15 @@ func (ch *Channel) Done() chan struct{} {
 // the listener.
 func (ch *Channel) Write(event Event) error {
 	select {
-	case ch.C <- event:
-		return nil
 	case <-ch.closed:
 		return ErrSinkClosed
+	default:
+		select {
+			case <-ch.closed:
+				return ErrSinkClosed
+			case ch.C <- event:
+				return nil
+		}
 	}
 }
 
