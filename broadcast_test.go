@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -11,25 +12,46 @@ func TestBroadcaster(t *testing.T) {
 	b := NewBroadcaster()
 	for i := 0; i < 10; i++ {
 		sinks = append(sinks, newTestSink(t, nEvents))
-		b.Add(sinks[i])
-		b.Add(sinks[i]) // noop
+		err := b.Add(sinks[i])
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+
+		err = b.Add(sinks[i]) // noop
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
 	}
 
-	var wg sync.WaitGroup
+	var (
+		wg       sync.WaitGroup
+		asyncErr error
+		once     sync.Once
+	)
 	for i := 1; i <= nEvents; i++ {
 		wg.Add(1)
 		go func(event Event) {
+			defer wg.Done()
+
 			if err := b.Write(event); err != nil {
-				t.Fatalf("error writing event %v: %v", event, err)
+				once.Do(func() {
+					asyncErr = fmt.Errorf("error writing event(%v): %v", event, err)
+				})
 			}
-			wg.Done()
-		}("event")
+		}(fmt.Sprintf("event-%d", i))
 	}
 
 	wg.Wait() // Wait until writes complete
 
+	if asyncErr != nil {
+		t.Fatalf("expected nil error, got %v", asyncErr)
+	}
+
 	for i := range sinks {
-		b.Remove(sinks[i])
+		err := b.Remove(sinks[i])
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
 	}
 
 	// sending one more should trigger test failure if they weren't removed.
@@ -39,7 +61,10 @@ func TestBroadcaster(t *testing.T) {
 
 	// add them back to test closing.
 	for i := range sinks {
-		b.Add(sinks[i])
+		err := b.Add(sinks[i])
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
 	}
 
 	checkClose(t, b)

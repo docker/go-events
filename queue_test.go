@@ -19,18 +19,30 @@ func TestQueue(t *testing.T) {
 		})
 	time.Sleep(10 * time.Millisecond) // let's queue settle to wait conidition.
 
-	var wg sync.WaitGroup
+	var (
+		wg       sync.WaitGroup
+		asyncErr error
+		once     sync.Once
+	)
 	for i := 1; i <= nevents; i++ {
 		wg.Add(1)
 		go func(event Event) {
+			defer wg.Done()
+
 			if err := eq.Write(event); err != nil {
-				t.Fatalf("error writing event: %v", err)
+				once.Do(func() {
+					asyncErr = fmt.Errorf("error writing event(%v): %v", event, err)
+				})
 			}
-			wg.Done()
-		}("event-" + fmt.Sprint(i))
+		}(fmt.Sprintf("event-%d", i))
 	}
 
 	wg.Wait()
+
+	if asyncErr != nil {
+		t.Fatalf("expected nil error, got %v", asyncErr)
+	}
+
 	checkClose(t, eq)
 
 	ts.mu.Lock()
