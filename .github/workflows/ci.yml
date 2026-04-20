@@ -29,8 +29,8 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "oldstable" 
           cache: false
@@ -38,7 +38,7 @@ jobs:
         run: |
           ln -s vendor.mod go.mod
           ln -s vendor.sum go.sum
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
         with:
           version: v1.60.1
           skip-cache: true
@@ -52,8 +52,8 @@ jobs:
         go: ["1.13", "oldstable", "stable"]
 
     steps:
-      - uses: actions/checkout@v4 
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: ${{ matrix.go }}
           cache: false
@@ -73,7 +73,7 @@ jobs:
       security-events: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Create go.mod
         run: |
           ln -s vendor.mod go.mod
@@ -81,7 +81,7 @@ jobs:
       - name: Create artifact directory
         run: mkdir -p ${{ env.DESTDIR }}
       - name: Run govulncheck
-        uses: golang/govulncheck-action@v1
+        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1
         with:
           go-package: ./...
           check-latest: true
@@ -90,6 +90,6 @@ jobs:
           output-file: ${{ env.DESTDIR }}/govulncheck.out
       - name: Upload SARIF report
         if: ${{ github.event_name != 'pull_request' && github.repository == 'docker/go-events' }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a # v3
         with:
           sarif_file: ${{ env.DESTDIR }}/govulncheck.out 
