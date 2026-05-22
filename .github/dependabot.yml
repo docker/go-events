@@ -5,3 +5,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
