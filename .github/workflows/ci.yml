@@ -90,6 +90,6 @@ jobs:
           output-file: ${{ env.DESTDIR }}/govulncheck.out
       - name: Upload SARIF report
         if: ${{ github.event_name != 'pull_request' && github.repository == 'docker/go-events' }}
-        uses: github/codeql-action/upload-sarif@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a # v3
+        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v3
         with:
           sarif_file: ${{ env.DESTDIR }}/govulncheck.out 
