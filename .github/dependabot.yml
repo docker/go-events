@@ -7,5 +7,7 @@ updates:
       day: "monday"
     labels:
       - "dependencies"
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore"
