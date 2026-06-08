@@ -17,5 +17,4 @@ func TestFilter(t *testing.T) {
 	}
 
 	checkClose(t, filter)
-
 }
