@@ -81,7 +81,8 @@ jobs:
       - name: Create artifact directory
         run: mkdir -p ${{ env.DESTDIR }}
       - name: Run govulncheck
-        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1
+        # temporarily using "master" until https://github.com/golang/govulncheck-action/commit/31f7c5463448f83528bd771c2d978d940080c9fd is in a release
+        uses: golang/govulncheck-action@31f7c5463448f83528bd771c2d978d940080c9fd # master
         with:
           go-package: ./...
           check-latest: true
