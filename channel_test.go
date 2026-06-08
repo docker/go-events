@@ -38,7 +38,7 @@ func TestChannel(t *testing.T) {
 			return
 		}
 
-		sink.Close()
+		_ = sink.Close()
 
 		// now send another bunch of events and ensure we stay closed
 		for i := 1; i <= nevents; i++ {
@@ -76,7 +76,7 @@ loop:
 
 	close(errCh)
 
-	sink.Close()
+	_ = sink.Close()
 	_, ok := <-sink.Done() // test will timeout if this hangs
 	if ok {
 		t.Fatalf("done should be a closed channel")
