@@ -109,9 +109,9 @@ func checkClose(t *testing.T, sink Sink) {
 }
 
 func benchmarkSink(b *testing.B, sink Sink) {
-	defer sink.Close()
 	event := "myevent"
 	for i := 0; i < b.N; i++ {
 		_ = sink.Write(event)
 	}
+	_ = sink.Close()
 }
