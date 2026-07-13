@@ -11,3 +11,7 @@ updates:
       default-days: 7
     commit-message:
       prefix: "chore"
+    groups:
+      codeql-actions:
+        patterns:
+          - "github/codeql-action/*"
