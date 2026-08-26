@@ -25,47 +25,60 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: "oldstable" 
-          cache: false
       - name: Create go.mod
         run: |
           ln -s vendor.mod go.mod
           ln -s vendor.sum go.sum
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "oldstable"
+          cache: false
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.13
           skip-cache: true
 
   test:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-
+    name: ${{ matrix.os }} / ${{ matrix.go-version || 'minimum' }}
     strategy:
+      fail-fast: false
       matrix:
-        go: ["1.13", "oldstable", "stable"]
-
+        go-version:
+          - "" # leave empty to use go-version-file (use go.mod); see https://github.com/actions/setup-go/issues/450#issuecomment-3620402646
+          - oldstable
+          - stable
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        exclude:
+          # Go 1.13 predates darwin/arm64.
+          # FIXME(thaJeztah): remove this exclude once we update the minimum go version.
+          - os: macos-latest
+            go-version: ""
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: ${{ matrix.go }}
-          cache: false
+          persist-credentials: false
       - name: Create go.mod
         run: |
           ln -s vendor.mod go.mod
           ln -s vendor.sum go.sum
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod # used when go-version is empty.
+          cache: false
       - name: Run tests
         run: go test -race
   
   govulncheck:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     permissions:
@@ -78,6 +91,11 @@ jobs:
         run: |
           ln -s vendor.mod go.mod
           ln -s vendor.sum go.sum
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
       - name: Create artifact directory
         run: mkdir -p ${{ env.DESTDIR }}
       - name: Run govulncheck
