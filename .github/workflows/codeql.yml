@@ -12,12 +12,12 @@ permissions:
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
     tags:
       - 'v*'
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: ["master"]
+    branches: ["main"]
   schedule:
     #        ┌───────────── minute (0 - 59)
     #        │ ┌───────────── hour (0 - 23)
