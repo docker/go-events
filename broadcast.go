@@ -106,23 +106,15 @@ func (b *Broadcaster) Close() error {
 // Close is called, this goroutine will exit.
 func (b *Broadcaster) run() {
 	defer close(b.closed)
-	remove := func(target Sink) {
-		for i, sink := range b.sinks {
-			if sink == target {
-				b.sinks = append(b.sinks[:i], b.sinks[i+1:]...)
-				break
-			}
-		}
-	}
 
 	for {
 		select {
 		case event := <-b.events:
-			for _, sink := range b.sinks {
+			for i := 0; i < len(b.sinks); {
+				sink := b.sinks[i]
 				if err := sink.Write(event); err != nil {
 					if err == ErrSinkClosed {
-						// remove closed sinks
-						remove(sink)
+						b.sinks = slices.Delete(b.sinks, i, i+1)
 						continue
 					}
 					logrus.WithFields(logrus.Fields{
@@ -131,6 +123,7 @@ func (b *Broadcaster) run() {
 						"events.sink": sink,
 					}).Error("broadcaster: dropping event")
 				}
+				i++
 			}
 		case request := <-b.adds:
 			// while we have to iterate for add/remove, common iteration for
@@ -141,7 +134,9 @@ func (b *Broadcaster) run() {
 			}
 			request.response <- nil
 		case request := <-b.removes:
-			remove(request.sink)
+			if i := slices.Index(b.sinks, request.sink); i >= 0 {
+				b.sinks = slices.Delete(b.sinks, i, i+1)
+			}
 			request.response <- nil
 		case <-b.shutdown:
 			// close all the underlying sinks
