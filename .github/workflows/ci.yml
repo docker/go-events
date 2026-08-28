@@ -53,11 +53,6 @@ jobs:
           - oldstable
           - stable
         os: [ubuntu-latest, windows-latest, macos-latest]
-        exclude:
-          # Go 1.13 predates darwin/arm64.
-          # FIXME(thaJeztah): remove this exclude once we update the minimum go version.
-          - os: macos-latest
-            go-version: ""
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
