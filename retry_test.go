@@ -84,7 +84,7 @@ func TestExponentialBackoff(t *testing.T) {
 			t.Errorf("no facilities for dropping events in ExponentialBackoff")
 		}
 
-		for j := 0; j < 1000; j++ {
+		for range 1000 {
 			// sample this several thousand times.
 			backoff := strategy.Proceed(nil)
 			if backoff > expected {
@@ -92,10 +92,7 @@ func TestExponentialBackoff(t *testing.T) {
 			}
 		}
 
-		expected = strategy.config.Base + strategy.config.Factor*time.Duration(1<<uint64(i))
-		if expected > strategy.config.Max {
-			expected = strategy.config.Max
-		}
+		expected = min(strategy.config.Base+strategy.config.Factor*time.Duration(1<<uint64(i)), strategy.config.Max)
 	}
 
 	strategy.Success(nil) // recovery!

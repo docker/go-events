@@ -10,7 +10,7 @@ func TestBroadcaster(t *testing.T) {
 	const nEvents = 1000
 	var sinks []Sink
 	b := NewBroadcaster()
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		sinks = append(sinks, newTestSink(t, nEvents))
 		err := b.Add(sinks[i])
 		if err != nil {
@@ -108,7 +108,7 @@ func benchmarkBroadcast(b *testing.B, nsinks int) {
 
 	b.StopTimer()
 	var sinks []Sink
-	for i := 0; i < nsinks; i++ {
+	for range nsinks {
 		// counter.Inc(1)
 		sinks = append(sinks, newTestSink(b, b.N))
 		// sinks = append(sinks, NewQueue(&testSink{t: b, expected: b.N}))
