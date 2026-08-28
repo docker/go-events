@@ -86,3 +86,42 @@ loop:
 		t.Fatalf("events did not make it through sink: %v != %v", received, nevents)
 	}
 }
+
+// TestChannelWriteAfterClose is a regression test for
+// https://github.com/docker/go-events/issues/29. Once Close has completed,
+// subsequent writes must always return ErrSinkClosed, even if the channel has
+// capacity to accept another event.
+func TestChannelWriteAfterClose(t *testing.T) {
+	const nEvents = 100
+
+	sink := NewChannel(nEvents)
+	if err := sink.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range nEvents {
+		if err := sink.Write(i); err != ErrSinkClosed {
+			t.Fatalf("Write(%d) error = %v, want %v", i, err, ErrSinkClosed)
+		}
+	}
+}
+
+// TestChannelCloseUnblocksWrite verifies that closing a Channel releases a
+// Write that is blocked waiting for a receiver, and that the blocked Write
+// returns ErrSinkClosed.
+func TestChannelCloseUnblocksWrite(t *testing.T) {
+	sink := NewChannel(0)
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- sink.Write("event")
+	}()
+
+	if err := sink.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := <-errCh; err != ErrSinkClosed {
+		t.Fatalf("Write() error = %v, want %v", err, ErrSinkClosed)
+	}
+}
