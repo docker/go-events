@@ -2,9 +2,8 @@ package events
 
 import (
 	"container/list"
+	"context"
 	"sync"
-
-	"github.com/sirupsen/logrus"
 )
 
 // Queue accepts all messages into a queue for asynchronous consumption
@@ -15,19 +14,46 @@ type Queue struct {
 	events *list.List
 	cond   *sync.Cond
 	mu     sync.Mutex
+	errs   chan error
 	closed bool
 }
 
 // NewQueue returns a queue to the provided Sink dst.
+//
+// Deprecated: use [events.NewAsyncQueue] instead.
 func NewQueue(dst Sink) *Queue {
-	eq := Queue{
+	eq, _ := NewAsyncQueue(context.TODO(), dst)
+	return eq
+}
+
+type QueueOpt func(*Queue)
+
+func NewAsyncQueue(ctx context.Context, dst Sink, opts ...QueueOpt) (*Queue, <-chan error) {
+	eq := &Queue{
 		dst:    dst,
 		events: list.New(),
 	}
 
 	eq.cond = sync.NewCond(&eq.mu)
-	go eq.run()
-	return &eq
+
+	for _, opt := range opts {
+		opt(eq)
+	}
+
+	go eq.run(ctx)
+	return eq, eq.errs
+}
+
+func WithBufferedChannel(capacity int) QueueOpt {
+	return func(q *Queue) {
+		q.errs = make(chan error, capacity)
+	}
+}
+
+func WithBlockingChannel() QueueOpt {
+	return func(q *Queue) {
+		q.errs = make(chan error)
+	}
 }
 
 // Write accepts the events into the queue, only failing if the queue has
@@ -63,26 +89,21 @@ func (eq *Queue) Close() error {
 }
 
 // run is the main goroutine to flush events to the target sink.
-func (eq *Queue) run() {
+func (eq *Queue) run(ctx context.Context) {
 	for {
 		event := eq.next()
 
 		if event == nil {
+			if eq.errs != nil {
+				close(eq.errs)
+			}
 			return // nil block means event queue is closed.
 		}
 
 		if err := eq.dst.Write(event); err != nil {
-			// TODO(aaronl): Dropping events could be bad depending
-			// on the application. We should have a way of
-			// communicating this condition. However, logging
-			// at a log level above debug may not be appropriate.
-			// Eventually, go-events should not use logrus at all,
-			// and should bubble up conditions like this through
-			// error values.
-			logrus.WithFields(logrus.Fields{
-				"event": event,
-				"sink":  eq.dst,
-			}).WithError(err).Debug("eventqueue: dropped event")
+			if eq.errs != nil {
+				eq.errs <- err
+			}
 		}
 	}
 }
