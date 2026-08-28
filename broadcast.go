@@ -28,7 +28,7 @@ type Broadcaster struct {
 func NewBroadcaster(sinks ...Sink) *Broadcaster {
 	b := Broadcaster{
 		sinks:    sinks,
-		events:   make(chan Event),
+		events:   make(chan Event, 1024),
 		adds:     make(chan configureRequest),
 		removes:  make(chan configureRequest),
 		shutdown: make(chan struct{}),
