@@ -156,8 +156,7 @@ func (b *Broadcaster) run() {
 func (b *Broadcaster) String() string {
 	// Serialize copy of this broadcaster without the sync.Once, to avoid
 	// a data race.
-
-	b2 := map[string]any{
+	return fmt.Sprint(map[string]any{
 		"sinks":   b.sinks,
 		"events":  b.events,
 		"adds":    b.adds,
@@ -165,7 +164,5 @@ func (b *Broadcaster) String() string {
 
 		"shutdown": b.shutdown,
 		"closed":   b.closed,
-	}
-
-	return fmt.Sprint(b2)
+	})
 }

@@ -53,9 +53,8 @@ func (ch *Channel) Close() error {
 func (ch *Channel) String() string {
 	// Serialize a copy of the Channel that doesn't contain the sync.Once,
 	// to avoid a data race.
-	ch2 := map[string]any{
+	return fmt.Sprint(map[string]any{
 		"C":      ch.C,
 		"closed": ch.closed,
-	}
-	return fmt.Sprint(ch2)
+	})
 }

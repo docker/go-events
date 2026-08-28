@@ -26,13 +26,11 @@ type RetryingSink struct {
 // off on failure. Parameters threshold and backoff adjust the behavior of the
 // circuit breaker.
 func NewRetryingSink(sink Sink, strategy RetryStrategy) *RetryingSink {
-	rs := &RetryingSink{
+	return &RetryingSink{
 		sink:     sink,
 		strategy: strategy,
 		closed:   make(chan struct{}),
 	}
-
-	return rs
 }
 
 // Write attempts to flush the events to the downstream sink until it succeeds
@@ -66,14 +64,12 @@ retry:
 			return err
 		}
 
-		logger := logger.WithError(err) // shadow!!
-
 		if rs.strategy.Failure(event, err) {
-			logger.Errorf("retryingsink: dropped event")
+			logger.WithError(err).Error("retryingsink: dropped event")
 			return nil
 		}
 
-		logger.Errorf("retryingsink: error writing event, retrying")
+		logger.WithError(err).Error("retryingsink: error writing event, retrying")
 		goto retry
 	}
 
@@ -242,15 +238,14 @@ func (b *ExponentialBackoff) backoff(failures uint64) time.Duration {
 		factor = DefaultExponentialBackoffConfig.Factor
 	}
 
-	backoff := b.config.Base + factor*time.Duration(1<<(failures-1))
-
-	max := b.config.Max
-	if max <= 0 {
-		max = DefaultExponentialBackoffConfig.Max
+	maxBackoff := b.config.Max
+	if maxBackoff <= 0 {
+		maxBackoff = DefaultExponentialBackoffConfig.Max
 	}
 
-	if backoff > max || backoff < 0 {
-		backoff = max
+	backoff := b.config.Base + factor*time.Duration(1<<(failures-1))
+	if backoff > maxBackoff || backoff < 0 {
+		backoff = maxBackoff
 	}
 
 	// Choose a uniformly distributed value from [0, backoff).
