@@ -125,8 +125,11 @@ func (b *Broadcaster) run() {
 						remove(sink)
 						continue
 					}
-					logrus.WithField("event", event).WithField("events.sink", sink).WithError(err).
-						Errorf("broadcaster: dropping event")
+					logrus.WithFields(logrus.Fields{
+						"error":       err,
+						"event":       event,
+						"events.sink": sink,
+					}).Error("broadcaster: dropping event")
 				}
 			}
 		case request := <-b.adds:
@@ -144,8 +147,10 @@ func (b *Broadcaster) run() {
 			// close all the underlying sinks
 			for _, sink := range b.sinks {
 				if err := sink.Close(); err != nil && err != ErrSinkClosed {
-					logrus.WithField("events.sink", sink).WithError(err).
-						Errorf("broadcaster: closing sink failed")
+					logrus.WithFields(logrus.Fields{
+						"error":       err,
+						"events.sink": sink,
+					}).Error("broadcaster: closing sink failed")
 				}
 			}
 			return
