@@ -2,7 +2,7 @@ package events
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -249,5 +249,5 @@ func (b *ExponentialBackoff) backoff(failures uint64) time.Duration {
 	}
 
 	// Choose a uniformly distributed value from [0, backoff).
-	return time.Duration(rand.Int63n(int64(backoff)))
+	return rand.N(backoff)
 }
