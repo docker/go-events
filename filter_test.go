@@ -10,7 +10,7 @@ func TestFilter(t *testing.T) {
 		return ok && i%2 == 0
 	}))
 
-	for i := 0; i < nevents; i++ {
+	for i := range nevents {
 		if err := filter.Write(i); err != nil {
 			t.Fatalf("unexpected error writing event: %v", err)
 		}

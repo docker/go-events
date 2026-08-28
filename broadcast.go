@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -131,19 +132,10 @@ func (b *Broadcaster) run() {
 		case request := <-b.adds:
 			// while we have to iterate for add/remove, common iteration for
 			// send is faster against slice.
-
-			var found bool
-			for _, sink := range b.sinks {
-				if request.sink == sink {
-					found = true
-					break
-				}
-			}
-
-			if !found {
+			// b.sinks[request.sink] = struct{}{}
+			if !slices.Contains(b.sinks, request.sink) {
 				b.sinks = append(b.sinks, request.sink)
 			}
-			// b.sinks[request.sink] = struct{}{}
 			request.response <- nil
 		case request := <-b.removes:
 			remove(request.sink)
@@ -165,7 +157,7 @@ func (b *Broadcaster) String() string {
 	// Serialize copy of this broadcaster without the sync.Once, to avoid
 	// a data race.
 
-	b2 := map[string]interface{}{
+	b2 := map[string]any{
 		"sinks":   b.sinks,
 		"events":  b.events,
 		"adds":    b.adds,

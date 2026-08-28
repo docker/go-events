@@ -9,8 +9,8 @@ import (
 )
 
 type tOrB interface {
-	Fatalf(format string, args ...interface{})
-	Logf(format string, args ...interface{})
+	Fatalf(format string, args ...any)
+	Logf(format string, args ...any)
 }
 
 type testSink struct {

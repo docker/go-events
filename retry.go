@@ -93,7 +93,7 @@ func (rs *RetryingSink) Close() error {
 func (rs *RetryingSink) String() string {
 	// Serialize a copy of the RetryingSink without the sync.Once, to avoid
 	// a data race.
-	rs2 := map[string]interface{}{
+	rs2 := map[string]any{
 		"sink":     rs.sink,
 		"strategy": rs.strategy,
 		"closed":   rs.closed,
@@ -201,7 +201,7 @@ type ExponentialBackoffConfig struct {
 // ExponentialBackoff implements random backoff with exponentially increasing
 // bounds as the number consecutive failures increase.
 type ExponentialBackoff struct {
-	failures uint64 // consecutive failure counter (needs to be 64-bit aligned)
+	failures atomic.Uint64 // consecutive failure counter (needs to be 64-bit aligned)
 	config   ExponentialBackoffConfig
 }
 
@@ -215,17 +215,17 @@ func NewExponentialBackoff(config ExponentialBackoffConfig) *ExponentialBackoff 
 
 // Proceed returns the next randomly bound exponential backoff time.
 func (b *ExponentialBackoff) Proceed(event Event) time.Duration {
-	return b.backoff(atomic.LoadUint64(&b.failures))
+	return b.backoff(b.failures.Load())
 }
 
 // Success resets the failures counter.
 func (b *ExponentialBackoff) Success(event Event) {
-	atomic.StoreUint64(&b.failures, 0)
+	b.failures.Store(0)
 }
 
 // Failure increments the failure counter.
 func (b *ExponentialBackoff) Failure(event Event, err error) bool {
-	atomic.AddUint64(&b.failures, 1)
+	b.failures.Add(1)
 	return false
 }
 
